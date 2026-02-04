@@ -2,11 +2,11 @@
 
 Three setups depending on what you want.
 
+> **Note:** `dontAsk` mode is buggy and may auto-deny Write/Edit operations ([#11934](https://github.com/anthropics/claude-code/issues/11934)). The configs below use `PreToolUse` hooks to explicitly allow them.
+
 ## Case 1: Auto-allow all, block dangerous commands
 
 No prompts. Dangerous commands are denied outright with a custom message.
-
-**Requires a hook** (settings-only is broken, see [Appendix](#appendix-settings-only-approach-broken)).
 
 `~/.claude/settings.json`:
 ```json
@@ -19,12 +19,24 @@ No prompts. Dangerous commands are denied outright with a custom message.
     "PreToolUse": [
       {
         "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/simple-deny-dangerous.sh"
-          }
-        ]
+        "hooks": [{
+          "type": "command",
+          "command": "~/.claude/hooks/simple-deny-dangerous.sh"
+        }]
+      },
+      {
+        "matcher": "Write",
+        "hooks": [{
+          "type": "command",
+          "command": "echo '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"allow\"}}'"
+        }]
+      },
+      {
+        "matcher": "Edit",
+        "hooks": [{
+          "type": "command",
+          "command": "echo '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"allow\"}}'"
+        }]
       }
     ]
   }
@@ -42,8 +54,6 @@ chmod +x ~/.claude/hooks/simple-deny-dangerous.sh
 
 No prompts for normal commands. Dangerous commands show a permission dialog.
 
-**Requires a hook** (settings-only can't do this).
-
 `~/.claude/settings.json`:
 ```json
 {
@@ -55,12 +65,24 @@ No prompts for normal commands. Dangerous commands show a permission dialog.
     "PreToolUse": [
       {
         "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/simple-prompt-dangerous.sh"
-          }
-        ]
+        "hooks": [{
+          "type": "command",
+          "command": "~/.claude/hooks/simple-prompt-dangerous.sh"
+        }]
+      },
+      {
+        "matcher": "Write",
+        "hooks": [{
+          "type": "command",
+          "command": "echo '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"allow\"}}'"
+        }]
+      },
+      {
+        "matcher": "Edit",
+        "hooks": [{
+          "type": "command",
+          "command": "echo '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"allow\"}}'"
+        }]
       }
     ]
   }
@@ -91,12 +113,24 @@ An LLM reads the conversation history and decides: allow, deny, or prompt.
     "PreToolUse": [
       {
         "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/smart-permission.sh"
-          }
-        ]
+        "hooks": [{
+          "type": "command",
+          "command": "~/.claude/hooks/smart-permission.sh"
+        }]
+      },
+      {
+        "matcher": "Write",
+        "hooks": [{
+          "type": "command",
+          "command": "echo '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"allow\"}}'"
+        }]
+      },
+      {
+        "matcher": "Edit",
+        "hooks": [{
+          "type": "command",
+          "command": "echo '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"allow\"}}'"
+        }]
       }
     ]
   }
@@ -126,30 +160,14 @@ See [hooks-permission-behavior.md](hooks-permission-behavior.md) for detailed fi
 
 ---
 
-## Appendix: Settings-only approach (broken)
+## Appendix: Known bugs
 
-> **Warning:** The `allow` and `deny` rules in settings.json are **not enforced** for Bash commands. This is a known bug: [#18846](https://github.com/anthropics/claude-code/issues/18846). Use hooks instead.
+### Bash allow/deny rules don't work
 
-The following config **does not work** as expected:
+The `allow` and `deny` rules in settings.json are **not enforced** for Bash commands. This is a known bug: [#18846](https://github.com/anthropics/claude-code/issues/18846). Use `PreToolUse` hooks instead.
 
-`~/.claude/settings.json`:
-```json
-{
-  "permissions": {
-    "additionalDirectories": ["~", "/tmp", "/private/tmp"],
-    "defaultMode": "dontAsk",
-    "deny": [
-      "Bash(rm:*)",
-      "Bash(git reset:*)",
-      "Bash(git clean:*)",
-      "Read(**/.env)",
-      "Read(**/.env.*)",
-      "Read(**/secrets/**)",
-      "Read(**/*.pem)",
-      "Read(**/*.key)"
-    ]
-  }
-}
-```
+### dontAsk mode auto-denies Write/Edit
 
-This *should* auto-allow everything except the denied patterns, but the Bash deny rules are ignored. The Read rules may work.
+`dontAsk` mode may auto-deny Write and Edit operations with "Permission to use X has been auto-denied in dontAsk mode." This is [#11934](https://github.com/anthropics/claude-code/issues/11934).
+
+**Workaround:** Use `PreToolUse` hooks that return `permissionDecision: "allow"` for Write and Edit (shown in configs above).

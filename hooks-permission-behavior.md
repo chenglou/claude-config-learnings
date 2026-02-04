@@ -44,13 +44,14 @@ If you don't allow bash broadly, all bash commands prompt (defeating the purpose
 
 `dontAsk` mode ignores `ask` rules entirely - they behave like `deny` instead of prompting.
 
-### Recommended: dontAsk + PreToolUse hook
+### Recommended: dontAsk + PreToolUse hooks
 
-Since Bash `allow`/`deny` rules are broken, the recommended setup is:
-- `defaultMode: "dontAsk"` - auto-allows all tools
+Since Bash `allow`/`deny` rules are broken, and `dontAsk` mode may auto-deny Write/Edit ([#11934](https://github.com/anthropics/claude-code/issues/11934)), the recommended setup is:
+- `defaultMode: "dontAsk"` - baseline (buggy but still useful)
 - `PreToolUse` hook on Bash - handles allow/deny/prompt for commands
+- `PreToolUse` hooks on Write/Edit - explicitly return `permissionDecision: "allow"` to work around dontAsk bugs
 
-The hook runs before the permission system decides, so it can deny or prompt for dangerous commands even in `dontAsk` mode.
+The hook runs before the permission system decides, so it overrides the buggy dontAsk behavior.
 
 ## Hook Events
 
