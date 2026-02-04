@@ -24,10 +24,13 @@ Tested on Claude Code (latest stable), Feb 2026.
 ### Rule Syntax
 
 ```
-Bash(rm:*)        ✓ correct
+Bash(rm:*)        ✓ correct (`:*` is deprecated, use ` *`)
+Bash(rm *)        ✓ correct (space before *)
 Bash(rm -rf *)    ✗ wrong
 Read(**/.env)     ✓ glob patterns for files
 ```
+
+> **Warning:** Bash `allow` and `deny` rules are currently broken and not enforced. See [#18846](https://github.com/anthropics/claude-code/issues/18846). Use `PreToolUse` hooks instead.
 
 ### Why "allow all except prompt for X" is impossible with settings
 
@@ -40,6 +43,14 @@ If you don't allow bash broadly, all bash commands prompt (defeating the purpose
 ### dontAsk mode + ask rules
 
 `dontAsk` mode ignores `ask` rules entirely - they behave like `deny` instead of prompting.
+
+### Recommended: dontAsk + PreToolUse hook
+
+Since Bash `allow`/`deny` rules are broken, the recommended setup is:
+- `defaultMode: "dontAsk"` - auto-allows all tools
+- `PreToolUse` hook on Bash - handles allow/deny/prompt for commands
+
+The hook runs before the permission system decides, so it can deny or prompt for dangerous commands even in `dontAsk` mode.
 
 ## Hook Events
 
@@ -121,4 +132,5 @@ The `transcript_path` can be read by agent hooks or shell scripts to get full co
 
 - `-p` mode doesn't support interactive permission dialogs (commands block or timeout)
 - `acceptEdits` mode auto-allows file operations without triggering `PermissionRequest`
-- Hook changes in settings require a new Claude session to take effect
+- **Hook changes in settings require a new Claude session to take effect**
+- `--version` flags appear to be special-cased as always-allowed (e.g., `python3 --version` works even when other python3 commands are blocked)

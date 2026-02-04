@@ -4,26 +4,38 @@ Three setups depending on what you want.
 
 ## Case 1: Auto-allow all, block dangerous commands
 
-No prompts. Dangerous commands are denied outright.
+No prompts. Dangerous commands are denied outright with a custom message.
+
+**Requires a hook** (settings-only is broken, see [Appendix](#appendix-settings-only-approach-broken)).
 
 `~/.claude/settings.json`:
 ```json
 {
   "permissions": {
     "additionalDirectories": ["~", "/tmp", "/private/tmp"],
-    "defaultMode": "dontAsk",
-    "deny": [
-      "Bash(rm:*)",
-      "Bash(git reset:*)",
-      "Bash(git clean:*)",
-      "Read(**/.env)",
-      "Read(**/.env.*)",
-      "Read(**/secrets/**)",
-      "Read(**/*.pem)",
-      "Read(**/*.key)"
+    "defaultMode": "dontAsk"
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/simple-deny-dangerous.sh"
+          }
+        ]
+      }
     ]
   }
 }
+```
+
+Setup:
+```bash
+mkdir -p ~/.claude/hooks
+cp simple-deny-dangerous.sh ~/.claude/hooks/
+chmod +x ~/.claude/hooks/simple-deny-dangerous.sh
 ```
 
 ## Case 2: Auto-allow all, prompt for dangerous commands
@@ -37,7 +49,7 @@ No prompts for normal commands. Dangerous commands show a permission dialog.
 {
   "permissions": {
     "additionalDirectories": ["~", "/tmp", "/private/tmp"],
-    "defaultMode": "acceptEdits"
+    "defaultMode": "dontAsk"
   },
   "hooks": {
     "PreToolUse": [
@@ -46,7 +58,7 @@ No prompts for normal commands. Dangerous commands show a permission dialog.
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/hooks/prompt-dangerous.sh"
+            "command": "~/.claude/hooks/simple-prompt-dangerous.sh"
           }
         ]
       }
@@ -58,8 +70,8 @@ No prompts for normal commands. Dangerous commands show a permission dialog.
 Setup:
 ```bash
 mkdir -p ~/.claude/hooks
-cp prompt-dangerous.sh ~/.claude/hooks/
-chmod +x ~/.claude/hooks/prompt-dangerous.sh
+cp simple-prompt-dangerous.sh ~/.claude/hooks/
+chmod +x ~/.claude/hooks/simple-prompt-dangerous.sh
 ```
 
 ## Case 3: LLM decides based on conversation context
@@ -73,7 +85,7 @@ An LLM reads the conversation history and decides: allow, deny, or prompt.
 {
   "permissions": {
     "additionalDirectories": ["~", "/tmp", "/private/tmp"],
-    "defaultMode": "acceptEdits"
+    "defaultMode": "dontAsk"
   },
   "hooks": {
     "PreToolUse": [
@@ -111,3 +123,33 @@ So "allow all except prompt for X" requires a hook.
 ## More Details
 
 See [hooks-permission-behavior.md](hooks-permission-behavior.md) for detailed findings on hook behavior.
+
+---
+
+## Appendix: Settings-only approach (broken)
+
+> **Warning:** The `allow` and `deny` rules in settings.json are **not enforced** for Bash commands. This is a known bug: [#18846](https://github.com/anthropics/claude-code/issues/18846). Use hooks instead.
+
+The following config **does not work** as expected:
+
+`~/.claude/settings.json`:
+```json
+{
+  "permissions": {
+    "additionalDirectories": ["~", "/tmp", "/private/tmp"],
+    "defaultMode": "dontAsk",
+    "deny": [
+      "Bash(rm:*)",
+      "Bash(git reset:*)",
+      "Bash(git clean:*)",
+      "Read(**/.env)",
+      "Read(**/.env.*)",
+      "Read(**/secrets/**)",
+      "Read(**/*.pem)",
+      "Read(**/*.key)"
+    ]
+  }
+}
+```
+
+This *should* auto-allow everything except the denied patterns, but the Bash deny rules are ignored. The Read rules may work.
