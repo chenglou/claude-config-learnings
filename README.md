@@ -2,7 +2,7 @@
 
 Three setups depending on what you want.
 
-> **Note:** `dontAsk` mode is buggy and may auto-deny Write/Edit operations ([#11934](https://github.com/anthropics/claude-code/issues/11934)). The configs below use `PreToolUse` hooks to explicitly allow them.
+> **Note:** `dontAsk` mode is buggy and may auto-deny tools ([#11934](https://github.com/anthropics/claude-code/issues/11934)). The configs below use `PreToolUse` hooks to explicitly allow them.
 
 ## Case 1: Auto-allow all, block dangerous commands
 
@@ -25,17 +25,10 @@ No prompts. Dangerous commands are denied outright with a custom message.
         }]
       },
       {
-        "matcher": "Write",
+        "matcher": "",
         "hooks": [{
           "type": "command",
-          "command": "echo '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"allow\"}}'"
-        }]
-      },
-      {
-        "matcher": "Edit",
-        "hooks": [{
-          "type": "command",
-          "command": "echo '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"allow\"}}'"
+          "command": "~/.claude/hooks/allow-all.sh"
         }]
       }
     ]
@@ -46,8 +39,8 @@ No prompts. Dangerous commands are denied outright with a custom message.
 Setup:
 ```bash
 mkdir -p ~/.claude/hooks
-cp simple-deny-dangerous.sh ~/.claude/hooks/
-chmod +x ~/.claude/hooks/simple-deny-dangerous.sh
+cp simple-deny-dangerous.sh allow-all.sh ~/.claude/hooks/
+chmod +x ~/.claude/hooks/*.sh
 ```
 
 ## Case 2: Auto-allow all, prompt for dangerous commands
@@ -71,17 +64,10 @@ No prompts for normal commands. Dangerous commands show a permission dialog.
         }]
       },
       {
-        "matcher": "Write",
+        "matcher": "",
         "hooks": [{
           "type": "command",
-          "command": "echo '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"allow\"}}'"
-        }]
-      },
-      {
-        "matcher": "Edit",
-        "hooks": [{
-          "type": "command",
-          "command": "echo '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"allow\"}}'"
+          "command": "~/.claude/hooks/allow-all.sh"
         }]
       }
     ]
@@ -92,8 +78,8 @@ No prompts for normal commands. Dangerous commands show a permission dialog.
 Setup:
 ```bash
 mkdir -p ~/.claude/hooks
-cp simple-prompt-dangerous.sh ~/.claude/hooks/
-chmod +x ~/.claude/hooks/simple-prompt-dangerous.sh
+cp simple-prompt-dangerous.sh allow-all.sh ~/.claude/hooks/
+chmod +x ~/.claude/hooks/*.sh
 ```
 
 ## Case 3: LLM decides based on conversation context
@@ -119,17 +105,10 @@ An LLM reads the conversation history and decides: allow, deny, or prompt.
         }]
       },
       {
-        "matcher": "Write",
+        "matcher": "",
         "hooks": [{
           "type": "command",
-          "command": "echo '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"allow\"}}'"
-        }]
-      },
-      {
-        "matcher": "Edit",
-        "hooks": [{
-          "type": "command",
-          "command": "echo '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"allow\"}}'"
+          "command": "~/.claude/hooks/allow-all.sh"
         }]
       }
     ]
@@ -140,8 +119,8 @@ An LLM reads the conversation history and decides: allow, deny, or prompt.
 Setup:
 ```bash
 mkdir -p ~/.claude/hooks
-cp smart-permission.sh ~/.claude/hooks/
-chmod +x ~/.claude/hooks/smart-permission.sh
+cp smart-permission.sh allow-all.sh ~/.claude/hooks/
+chmod +x ~/.claude/hooks/*.sh
 export ANTHROPIC_API_KEY=your-key
 ```
 
@@ -166,8 +145,8 @@ See [hooks-permission-behavior.md](hooks-permission-behavior.md) for detailed fi
 
 The `allow` and `deny` rules in settings.json are **not enforced** for Bash commands. This is a known bug: [#18846](https://github.com/anthropics/claude-code/issues/18846). Use `PreToolUse` hooks instead.
 
-### dontAsk mode auto-denies Write/Edit
+### dontAsk mode auto-denies tools
 
-`dontAsk` mode may auto-deny Write and Edit operations with "Permission to use X has been auto-denied in dontAsk mode." This is [#11934](https://github.com/anthropics/claude-code/issues/11934).
+`dontAsk` mode may auto-deny Write, Edit, WebFetch, and other tools with "Permission to use X has been auto-denied in dontAsk mode." This is [#11934](https://github.com/anthropics/claude-code/issues/11934).
 
-**Workaround:** Use `PreToolUse` hooks that return `permissionDecision: "allow"` for Write and Edit (shown in configs above).
+**Workaround:** Use a catch-all `PreToolUse` hook with empty matcher `""` that returns `permissionDecision: "allow"` (see `allow-all.sh`).
