@@ -1,4 +1,3 @@
 #!/bin/bash
-# Allows all tools - workaround for dontAsk mode bugs (#11934)
-# Usage: Copy to ~/.claude/hooks/ and chmod +x
+# Allows all tools - workaround for dontAsk mode bugs
 echo '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"allow"}}'
