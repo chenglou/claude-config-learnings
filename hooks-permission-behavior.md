@@ -10,7 +10,7 @@ Tested on Claude Code (latest stable), Feb 2026.
 |------|----------|
 | `default` | Prompts for most operations |
 | `acceptEdits` | Auto-allows file operations (Read, Write, Edit) |
-| `dontAsk` | Auto-allows everything |
+| `dontAsk` | Auto-denies most tools (buggy — see below) |
 | `bypassPermissions` | Skips all permission checks |
 
 ### Rule Evaluation Order
@@ -30,7 +30,7 @@ Bash(rm -rf *)    ✗ wrong
 Read(**/.env)     ✓ glob patterns for files
 ```
 
-> **Warning:** Bash `allow` and `deny` rules are currently broken and not enforced. See [#18846](https://github.com/anthropics/claude-code/issues/18846). Use `PreToolUse` hooks instead.
+> **Note:** Bash `deny` rules now work (e.g. `Bash(rm *)` blocks rm). However, `dontAsk` mode auto-denies Bash entirely unless you add `allow: ["Bash"]` or use a `PreToolUse` hook. [#18846](https://github.com/anthropics/claude-code/issues/18846) is still open.
 
 ### Why "allow all except prompt for X" is impossible with settings
 
@@ -42,16 +42,18 @@ If you don't allow bash broadly, all bash commands prompt (defeating the purpose
 
 ### dontAsk mode + ask rules
 
-`dontAsk` mode ignores `ask` rules entirely - they behave like `deny` instead of prompting.
+`dontAsk` mode ignores `ask` rules entirely — they behave like `deny` instead of prompting ([#16555](https://github.com/anthropics/claude-code/issues/16555), closed as not planned). Still broken as of Feb 2026.
+
+### dontAsk mode auto-denies tools
+
+`dontAsk` mode auto-denies most tools (Bash, WebSearch, WebFetch, etc.) instead of allowing them ([#11881](https://github.com/anthropics/claude-code/issues/11881), closed but still broken). A sub-agent variant is [#11934](https://github.com/anthropics/claude-code/issues/11934). Still broken as of Feb 2026.
 
 ### Recommended: dontAsk + PreToolUse hooks
 
-Since Bash `allow`/`deny` rules are broken, and `dontAsk` mode may auto-deny Write/Edit ([#11934](https://github.com/anthropics/claude-code/issues/11934)), the recommended setup is:
-- `defaultMode: "dontAsk"` - baseline (buggy but still useful)
-- `PreToolUse` hook on Bash - handles allow/deny/prompt for commands
-- `PreToolUse` hooks on Write/Edit - explicitly return `permissionDecision: "allow"` to work around dontAsk bugs
-
-The hook runs before the permission system decides, so it overrides the buggy dontAsk behavior.
+Since `dontAsk` auto-denies tools and ignores `ask` rules, the recommended setup is:
+- `defaultMode: "dontAsk"` - baseline (buggy, needs hooks to work)
+- Catch-all `PreToolUse` hook with empty matcher `""` returning `permissionDecision: "allow"` — works around the auto-deny bug
+- `PreToolUse` hook on Bash - handles allow/deny/prompt for specific commands
 
 ## Hook Events
 
