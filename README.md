@@ -129,7 +129,7 @@ export ANTHROPIC_API_KEY=your-key
 Evaluation order is: deny → allow → ask
 
 - If you `allow: ["Bash"]`, all bash is allowed before `ask` is checked
-- If you don't allow bash broadly, everything prompts
+- If you don't allow bash broadly, everything prompts (or in `dontAsk` mode, gets auto-denied)
 
 So "allow all except prompt for X" requires a hook.
 

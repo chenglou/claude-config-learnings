@@ -45,7 +45,7 @@ RESPONSE=$(curl -s https://api.anthropic.com/v1/messages \
   -H "x-api-key: $ANTHROPIC_API_KEY" \
   -H "anthropic-version: 2023-06-01" \
   -d "$(jq -n --arg prompt "$PROMPT" '{
-    "model": "claude-sonnet-4-20250514",
+    "model": "claude-sonnet-4-6-20250514",
     "max_tokens": 10,
     "messages": [{"role": "user", "content": $prompt}]
   }')" 2>/dev/null | jq -r '.content[0].text // "ASK"' | tr '[:lower:]' '[:upper:]' | head -c 10)
